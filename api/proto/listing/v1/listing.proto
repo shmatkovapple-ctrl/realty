@@ -1,0 +1,115 @@
+syntax = "proto3";
+package listing.v1;
+option go_package = "realty/api/gen/listing/v1;listingv1";
+
+import "google/protobuf/timestamp.proto";
+
+service ListingService {
+  rpc CreateListing  (CreateListingRequest)  returns (CreateListingResponse);
+  rpc GetListing     (GetListingRequest)     returns (GetListingResponse);
+  rpc UpdateListing  (UpdateListingRequest)  returns (UpdateListingResponse);
+  rpc DeleteListing  (DeleteListingRequest)  returns (DeleteListingResponse);
+  rpc PublishListing (PublishListingRequest) returns (PublishListingResponse);
+  rpc SearchListings (SearchListingsRequest) returns (SearchListingsResponse);
+  rpc GetUploadURL   (GetUploadURLRequest)   returns (GetUploadURLResponse);
+}
+
+enum ListingType {
+  LISTING_TYPE_UNSPECIFIED = 0;
+  LISTING_TYPE_APARTMENT   = 1;
+  LISTING_TYPE_HOUSE       = 2;
+  LISTING_TYPE_COMMERCIAL  = 3;
+  LISTING_TYPE_LAND        = 4;
+}
+
+enum ListingStatus {
+  LISTING_STATUS_UNSPECIFIED = 0;
+  LISTING_STATUS_DRAFT       = 1;
+  LISTING_STATUS_PUBLISHED   = 2;
+  LISTING_STATUS_ARCHIVED    = 3;
+  LISTING_STATUS_SOLD        = 4;
+}
+
+message Address {
+  string country  = 1;
+  string city     = 2;
+  string district = 3;
+  string street   = 4;
+  string building = 5;
+  double lat      = 6;
+  double lng      = 7;
+}
+
+message Listing {
+  string        id           = 1;
+  string        seller_id    = 2;
+  string        agent_id     = 3;
+  ListingType   type         = 4;
+  ListingStatus status       = 5;
+  string        title        = 6;
+  string        description  = 7;
+  double        price        = 8;
+  string        currency     = 9;
+  double        area_sqm     = 10;
+  int32         rooms        = 11;
+  int32         floor        = 12;
+  int32         floors_total = 13;
+  Address       address      = 14;
+  repeated string media_urls = 15;
+  google.protobuf.Timestamp published_at = 16;
+  google.protobuf.Timestamp created_at   = 17;
+}
+
+message SearchFilter {
+  ListingType type      = 1;
+  string      city      = 2;
+  string      district  = 3;
+  double      price_min = 4;
+  double      price_max = 5;
+  double      area_min  = 6;
+  double      area_max  = 7;
+  int32       rooms_min = 8;
+  int32       rooms_max = 9;
+  double      lat       = 10;
+  double      lng       = 11;
+  double      radius_km = 12;
+}
+
+message CreateListingRequest  { Listing listing = 1; }
+message CreateListingResponse { Listing listing = 1; }
+
+message GetListingRequest  { string id = 1; }
+message GetListingResponse { Listing listing = 1; }
+
+message UpdateListingRequest  { Listing listing = 1; }
+message UpdateListingResponse { Listing listing = 1; }
+
+message DeleteListingRequest  { string id = 1; string seller_id = 2; }
+message DeleteListingResponse { bool success = 1; }
+
+message PublishListingRequest  { string id = 1; string seller_id = 2; }
+message PublishListingResponse { Listing listing = 1; }
+
+message SearchListingsRequest {
+  SearchFilter filter  = 1;
+  int32        page    = 2;
+  int32        limit   = 3;
+  string       sort_by = 4;
+}
+
+message SearchListingsResponse {
+  repeated Listing listings = 1;
+  int32            total    = 2;
+  int32            page     = 3;
+}
+
+message GetUploadURLRequest {
+  string listing_id   = 1;
+  string filename     = 2;
+  string content_type = 3;
+}
+
+message GetUploadURLResponse {
+  string upload_url = 1;
+  string file_url   = 2;
+}

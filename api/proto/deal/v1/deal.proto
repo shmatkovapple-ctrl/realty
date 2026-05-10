@@ -1,0 +1,128 @@
+syntax = "proto3";
+package deal.v1;
+option go_package = "realty/api/gen/deal/v1;dealv1";
+
+import "google/protobuf/timestamp.proto";
+
+service DealService {
+  rpc CreateViewingRequest (CreateViewingRequestReq) returns (CreateViewingRequestRes);
+  rpc UpdateViewingRequest (UpdateViewingRequestReq) returns (UpdateViewingRequestRes);
+  rpc ListViewingRequests  (ListViewingRequestsReq)  returns (ListViewingRequestsRes);
+  rpc CreateDeal           (CreateDealReq)           returns (CreateDealRes);
+  rpc UpdateDeal           (UpdateDealReq)           returns (UpdateDealRes);
+  rpc GetDeal              (GetDealReq)              returns (GetDealRes);
+  rpc ListDeals            (ListDealsReq)            returns (ListDealsRes);
+  rpc AddToFavorites       (AddToFavoritesReq)       returns (AddToFavoritesRes);
+  rpc RemoveFromFavorites  (RemoveFromFavoritesReq)  returns (RemoveFromFavoritesRes);
+  rpc ListFavorites        (ListFavoritesReq)        returns (ListFavoritesRes);
+}
+
+enum ViewingStatus {
+  VIEWING_STATUS_UNSPECIFIED = 0;
+  VIEWING_STATUS_PENDING     = 1;
+  VIEWING_STATUS_CONFIRMED   = 2;
+  VIEWING_STATUS_CANCELLED   = 3;
+  VIEWING_STATUS_COMPLETED   = 4;
+}
+
+enum DealStatus {
+  DEAL_STATUS_UNSPECIFIED = 0;
+  DEAL_STATUS_NEW         = 1;
+  DEAL_STATUS_REVIEW      = 2;
+  DEAL_STATUS_APPROVED    = 3;
+  DEAL_STATUS_CLOSED      = 4;
+  DEAL_STATUS_REJECTED    = 5;
+}
+
+message ViewingRequest {
+  string        id         = 1;
+  string        listing_id = 2;
+  string        buyer_id   = 3;
+  ViewingStatus status     = 4;
+  string        comment    = 5;
+  google.protobuf.Timestamp scheduled_at = 6;
+  google.protobuf.Timestamp created_at   = 7;
+}
+
+message Deal {
+  string     id           = 1;
+  string     listing_id   = 2;
+  string     buyer_id     = 3;
+  string     agent_id     = 4;
+  DealStatus status       = 5;
+  double     price_agreed = 6;
+  string     currency     = 7;
+  google.protobuf.Timestamp created_at = 8;
+  google.protobuf.Timestamp closed_at  = 9;
+}
+
+message Favorite {
+  string id         = 1;
+  string user_id    = 2;
+  string listing_id = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message CreateViewingRequestReq {
+  string listing_id = 1;
+  string buyer_id   = 2;
+  string comment    = 3;
+  google.protobuf.Timestamp scheduled_at = 4;
+}
+message CreateViewingRequestRes { ViewingRequest viewing_request = 1; }
+
+message UpdateViewingRequestReq {
+  string        id     = 1;
+  ViewingStatus status = 2;
+  google.protobuf.Timestamp scheduled_at = 3;
+}
+message UpdateViewingRequestRes { ViewingRequest viewing_request = 1; }
+
+message ListViewingRequestsReq {
+  string listing_id = 1;
+  string buyer_id   = 2;
+  int32  page       = 3;
+  int32  limit      = 4;
+}
+message ListViewingRequestsRes {
+  repeated ViewingRequest viewing_requests = 1;
+  int32 total = 2;
+}
+
+message CreateDealReq {
+  string listing_id   = 1;
+  string buyer_id     = 2;
+  string agent_id     = 3;
+  double price_agreed = 4;
+  string currency     = 5;
+}
+message CreateDealRes { Deal deal = 1; }
+
+message UpdateDealReq {
+  string     id           = 1;
+  DealStatus status       = 2;
+  double     price_agreed = 3;
+}
+message UpdateDealRes { Deal deal = 1; }
+
+message GetDealReq { string id = 1; }
+message GetDealRes { Deal deal = 1; }
+
+message ListDealsReq {
+  string buyer_id   = 1;
+  string seller_id  = 2;
+  string listing_id = 3;
+  int32  page       = 4;
+  int32  limit      = 5;
+}
+message ListDealsRes {
+  repeated Deal deals = 1;
+  int32 total = 2;
+}
+
+message AddToFavoritesReq       { string user_id = 1; string listing_id = 2; }
+message AddToFavoritesRes       { Favorite favorite = 1; }
+message RemoveFromFavoritesReq  { string user_id = 1; string listing_id = 2; }
+message RemoveFromFavoritesRes  { bool success = 1; }
+message ListFavoritesReq        { string user_id = 1; int32 page = 2; int32 limit = 3; }
+message ListFavoritesRes        { repeated Favorite favorites = 1; int32 total = 2; }

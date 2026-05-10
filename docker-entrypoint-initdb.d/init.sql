@@ -1,0 +1,3 @@
+﻿CREATE USER usr WITH PASSWORD 'pass';
+CREATE DATABASE lets_goto_it OWNER usr;
+GRANT ALL PRIVILEGES ON DATABASE lets_goto_it TO usr;

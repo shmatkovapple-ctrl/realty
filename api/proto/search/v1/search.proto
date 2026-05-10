@@ -1,0 +1,99 @@
+syntax = "proto3";
+package search.v1;
+option go_package = "realty/api/gen/search/v1;searchv1";
+
+service SearchService {
+  rpc Search         (SearchRequest)         returns (SearchResponse);
+  rpc Autocomplete   (AutocompleteRequest)   returns (AutocompleteResponse);
+  rpc GetSuggestions (GetSuggestionsRequest) returns (GetSuggestionsResponse);
+  rpc IndexListing   (IndexListingRequest)   returns (IndexListingResponse);
+  rpc DeleteIndex    (DeleteIndexRequest)    returns (DeleteIndexResponse);
+}
+
+enum SortBy {
+  SORT_BY_UNSPECIFIED  = 0;
+  SORT_BY_CREATED_DESC = 1;
+  SORT_BY_PRICE_ASC    = 2;
+  SORT_BY_PRICE_DESC   = 3;
+  SORT_BY_AREA_DESC    = 4;
+}
+
+message GeoPoint {
+  double lat       = 1;
+  double lng       = 2;
+  double radius_km = 3;
+}
+
+message PriceRange {
+  double min = 1;
+  double max = 2;
+}
+
+message AreaRange {
+  double min = 1;
+  double max = 2;
+}
+
+message SearchFilter {
+  string     query    = 1;
+  string     type     = 2;
+  string     city     = 3;
+  string     district = 4;
+  PriceRange price    = 5;
+  AreaRange  area     = 6;
+  int32      rooms    = 7;
+  GeoPoint   geo      = 8;
+}
+
+message SearchRequest {
+  SearchFilter filter = 1;
+  int32        page   = 2;
+  int32        limit  = 3;
+  SortBy       sort   = 4;
+}
+
+message SearchHit {
+  string listing_id  = 1;
+  float  score       = 2;
+  string title       = 3;
+  double price       = 4;
+  string city        = 5;
+  string district    = 6;
+  double area_sqm    = 7;
+  int32  rooms       = 8;
+  string preview_url = 9;
+  double lat         = 10;
+  double lng         = 11;
+}
+
+message SearchResponse {
+  repeated SearchHit hits  = 1;
+  int32              total = 2;
+  int32              page  = 3;
+}
+
+message AutocompleteRequest  { string query = 1; string field = 2; }
+message AutocompleteResponse { repeated string suggestions = 1; }
+
+message GetSuggestionsRequest  { string user_id = 1; }
+message GetSuggestionsResponse { repeated SearchHit hits = 1; }
+
+message IndexListingRequest {
+  string listing_id  = 1;
+  string type        = 2;
+  string status      = 3;
+  string title       = 4;
+  string description = 5;
+  double price       = 6;
+  double area_sqm    = 7;
+  int32  rooms       = 8;
+  string city        = 9;
+  string district    = 10;
+  double lat         = 11;
+  double lng         = 12;
+  string preview_url = 13;
+}
+message IndexListingResponse { bool success = 1; }
+
+message DeleteIndexRequest  { string listing_id = 1; }
+message DeleteIndexResponse { bool success = 1; }

@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS favorites;
+DROP TABLE IF EXISTS viewing_requests;
+DROP TABLE IF EXISTS deals;

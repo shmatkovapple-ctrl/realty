@@ -1,0 +1,11 @@
+go 1.25.4
+
+use (
+	.
+	./services/api-gateway
+	./services/deal-service
+	./services/listing-service
+	./services/notification-service
+	./services/search-service
+	./services/user-service
+)

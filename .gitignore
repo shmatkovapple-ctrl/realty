@@ -1,0 +1,27 @@
+﻿# Бинарники
+bin/
+*.exe
+
+# Go
+*.test
+*.out
+vendor/
+
+# Сгенерированный код (опционально — можно коммитить)
+# api/gen/
+
+# Переменные окружения
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Docker volumes (локальные данные)
+postgresql/
+
+# OS
+.DS_Store
+Thumbs.db

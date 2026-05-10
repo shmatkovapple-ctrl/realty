@@ -1,0 +1,66 @@
+syntax = "proto3";
+package notification.v1;
+option go_package = "realty/api/gen/notification/v1;notificationv1";
+
+import "google/protobuf/timestamp.proto";
+
+service NotificationService {
+  rpc SendNotification  (SendNotificationReq)  returns (SendNotificationRes);
+  rpc ListNotifications (ListNotificationsReq) returns (ListNotificationsRes);
+  rpc MarkAsRead        (MarkAsReadReq)        returns (MarkAsReadRes);
+  rpc MarkAllAsRead     (MarkAllAsReadReq)     returns (MarkAllAsReadRes);
+}
+
+enum NotificationType {
+  NOTIFICATION_TYPE_UNSPECIFIED       = 0;
+  NOTIFICATION_TYPE_VIEWING_CREATED   = 1;
+  NOTIFICATION_TYPE_VIEWING_CONFIRMED = 2;
+  NOTIFICATION_TYPE_VIEWING_CANCELLED = 3;
+  NOTIFICATION_TYPE_DEAL_CREATED      = 4;
+  NOTIFICATION_TYPE_DEAL_STATUS       = 5;
+  NOTIFICATION_TYPE_LISTING_PUBLISHED = 6;
+  NOTIFICATION_TYPE_SYSTEM            = 7;
+}
+
+enum NotificationChannel {
+  NOTIFICATION_CHANNEL_UNSPECIFIED = 0;
+  NOTIFICATION_CHANNEL_EMAIL       = 1;
+  NOTIFICATION_CHANNEL_IN_APP      = 2;
+  NOTIFICATION_CHANNEL_BOTH        = 3;
+}
+
+message Notification {
+  string           id      = 1;
+  string           user_id = 2;
+  NotificationType type    = 3;
+  string           title   = 4;
+  string           body    = 5;
+  string           link    = 6;
+  bool             is_read = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message SendNotificationReq {
+  string                user_id = 1;
+  NotificationType      type    = 2;
+  NotificationChannel   channel = 3;
+  map<string, string>   payload = 4;
+}
+message SendNotificationRes { bool success = 1; }
+
+message ListNotificationsReq {
+  string user_id     = 1;
+  bool   unread_only = 2;
+  int32  page        = 3;
+  int32  limit       = 4;
+}
+message ListNotificationsRes {
+  repeated Notification notifications = 1;
+  int32 total  = 2;
+  int32 unread = 3;
+}
+
+message MarkAsReadReq    { string notification_id = 1; string user_id = 2; }
+message MarkAsReadRes    { bool success = 1; }
+message MarkAllAsReadReq { string user_id = 1; }
+message MarkAllAsReadRes { int32 marked_count = 1; }
