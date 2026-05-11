@@ -7,9 +7,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: tr134sdfWE
       POSTGRES_DB: postgres
-      DB_USER: usr
-      DB_PASSWORD: pass
-      DB_NAME: lets_goto_it
     volumes:
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - ./postgresql.conf:/postgresql.conf
@@ -18,9 +15,6 @@ services:
       - "6432:5432"
     networks:
       - realty-net
-    logging:
-      options:
-        max-size: "50m"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -112,6 +106,151 @@ services:
       interval: 20s
       timeout: 10s
       retries: 5
+
+  migrate:
+    image: migrate/migrate
+    depends_on:
+      psql:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command: [
+      "-path", "/migrations",
+      "-database", "postgres://usr:pass@psql:5432/lets_goto_it?sslmode=disable",
+      "up"
+    ]
+    networks:
+      - realty-net
+
+  user-service:
+    build:
+      context: .
+      dockerfile: services/user-service/Dockerfile
+    environment:
+      GRPC_PORT: 50051
+      HTTP_PORT: 8081
+      DATABASE_URL: postgres://usr:pass@psql:5432/lets_goto_it?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecretkey_change_in_prod
+    ports:
+      - "50051:50051"
+    depends_on:
+      psql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - realty-net
+    restart: unless-stopped
+
+  listing-service:
+    build:
+      context: .
+      dockerfile: services/listing-service/Dockerfile
+    environment:
+      GRPC_PORT: 50052
+      HTTP_PORT: 8082
+      DATABASE_URL: postgres://usr:pass@psql:5432/lets_goto_it?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      KAFKA_URL: kafka:29092
+      MINIO_URL: minio:9000
+      MINIO_USER: minioadmin
+      MINIO_PASSWORD: minioadmin123
+    ports:
+      - "50052:50052"
+    depends_on:
+      psql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - realty-net
+    restart: unless-stopped
+
+  deal-service:
+    build:
+      context: .
+      dockerfile: services/deal-service/Dockerfile
+    environment:
+      GRPC_PORT: 50053
+      HTTP_PORT: 8083
+      DATABASE_URL: postgres://usr:pass@psql:5432/lets_goto_it?sslmode=disable
+      KAFKA_URL: kafka:29092
+    ports:
+      - "50053:50053"
+    depends_on:
+      psql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - realty-net
+    restart: unless-stopped
+
+  search-service:
+    build:
+      context: .
+      dockerfile: services/search-service/Dockerfile
+    environment:
+      GRPC_PORT: 50054
+      HTTP_PORT: 8084
+      ELASTIC_URL: http://elasticsearch:9200
+      REDIS_URL: redis://redis:6379
+      KAFKA_URL: kafka:29092
+    ports:
+      - "50054:50054"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - realty-net
+    restart: unless-stopped
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    environment:
+      GRPC_PORT: 50055
+      HTTP_PORT: 8085
+      DATABASE_URL: postgres://usr:pass@psql:5432/lets_goto_it?sslmode=disable
+      KAFKA_URL: kafka:29092
+    ports:
+      - "50055:50055"
+    depends_on:
+      psql:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - realty-net
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api-gateway/Dockerfile
+    environment:
+      HTTP_PORT: 8080
+      REDIS_URL: redis://redis:6379
+      USER_SERVICE_ADDR: user-service:50051
+      LISTING_SERVICE_ADDR: listing-service:50052
+      DEAL_SERVICE_ADDR: deal-service:50053
+      SEARCH_SERVICE_ADDR: search-service:50054
+      NOTIFICATION_SERVICE_ADDR: notification-service:50055
+    ports:
+      - "8080:8080"
+    depends_on:
+      - user-service
+      - listing-service
+      - deal-service
+      - search-service
+      - notification-service
+    networks:
+      - realty-net
+    restart: unless-stopped
 
 networks:
   realty-net:
