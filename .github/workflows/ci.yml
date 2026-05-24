@@ -3,8 +3,6 @@ name: CI/CD — realty
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 env:
   REGISTRY: 192.168.49.1:5000
