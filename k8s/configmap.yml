@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: realty-config
+  namespace: realty
+data:
+  REDIS_URL: "redis://redis:6379"
+  KAFKA_URL: "kafka-broker:29092"
+  MINIO_URL: "minio:9000"
+  ELASTIC_URL: "http://elasticsearch:9200"
+  USER_SERVICE_ADDR: "user-service:50051"
+  LISTING_SERVICE_ADDR: "listing-service:50052"
+  DEAL_SERVICE_ADDR: "deal-service:50053"
+  SEARCH_SERVICE_ADDR: "search-service:50054"
+  NOTIFICATION_SERVICE_ADDR: "notification-service:50055"
