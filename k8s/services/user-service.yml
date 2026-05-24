@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: realty
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: localhost:5000/realty/user-service:latest
+        envFrom:
+        - configMapRef:
+            name: realty-config
+        - secretRef:
+            name: realty-secrets
+        ports:
+        - containerPort: 50051
+          name: grpc
+        - containerPort: 8081
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          failureThreshold: 5
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+        restartPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: realty
+spec:
+  selector:
+    app: user-service
+  ports:
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+  - name: http
+    port: 8081
+    targetPort: 8081
