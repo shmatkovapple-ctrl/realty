@@ -106,6 +106,19 @@ jobs:
           kubectl wait --for=condition=ready pod \
             -l app=redis -n realty --timeout=60s
 
+      - name: Run migrations
+        run: |
+          kubectl run migrate --image=migrate/migrate \
+            --restart=Never \
+            --namespace=realty \
+            -- \
+            -path /migrations \
+            -database "postgres://usr:tr134sdfWE@postgres:5432/lets_goto_it?sslmode=disable" \
+            up
+          kubectl wait --for=condition=complete job/migrate \
+            -n realty --timeout=60s || true
+          kubectl delete pod migrate -n realty || true
+
       - name: Deploy services
         run: |
           kubectl apply -f k8s/services/
