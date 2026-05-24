@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: search-service
-        image: localhost:5000/realty/search-service:latest
+        image: 192.168.49.1:5000/realty/search-service:latest
         envFrom:
         - configMapRef:
             name: realty-config
@@ -24,15 +24,11 @@ spec:
         ports:
         - containerPort: 50054
           name: grpc
-        - containerPort: 8084
-          name: http
         readinessProbe:
-          httpGet:
-            path: /health
-            port: 8084
-          initialDelaySeconds: 20
-          periodSeconds: 10
-          failureThreshold: 5
+          tcpSocket:
+            port: 50054
+          initialDelaySeconds: 10
+          periodSeconds: 5
         resources:
           requests:
             memory: "64Mi"
@@ -40,7 +36,6 @@ spec:
           limits:
             memory: "256Mi"
             cpu: "300m"
-        restartPolicy: Always
 ---
 apiVersion: v1
 kind: Service
@@ -54,6 +49,3 @@ spec:
   - name: grpc
     port: 50054
     targetPort: 50054
-  - name: http
-    port: 8084
-    targetPort: 8084

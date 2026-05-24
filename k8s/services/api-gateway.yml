@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: api-gateway
-        image: localhost:5000/realty/api-gateway:latest
+        image: 192.168.49.1:5000/realty/api-gateway:latest
         envFrom:
         - configMapRef:
             name: realty-config
