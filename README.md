@@ -1,196 +1,238 @@
-[![GitHub Workflow Status (branch)](https://img.shields.io/github/actions/workflow/status/golang-migrate/migrate/ci.yaml?branch=master)](https://github.com/golang-migrate/migrate/actions/workflows/ci.yaml?query=branch%3Amaster)
-[![GoDoc](https://pkg.go.dev/badge/github.com/golang-migrate/migrate)](https://pkg.go.dev/github.com/golang-migrate/migrate/v4)
-[![Coverage Status](https://img.shields.io/coveralls/github/golang-migrate/migrate/master.svg)](https://coveralls.io/github/golang-migrate/migrate?branch=master)
-[![packagecloud.io](https://img.shields.io/badge/deb-packagecloud.io-844fec.svg)](https://packagecloud.io/golang-migrate/migrate?filter=debs)
-[![Docker Pulls](https://img.shields.io/docker/pulls/migrate/migrate.svg)](https://hub.docker.com/r/migrate/migrate/)
-![Supported Go Versions](https://img.shields.io/badge/Go-1.20%2C%201.21-lightgrey.svg)
-[![GitHub Release](https://img.shields.io/github/release/golang-migrate/migrate.svg)](https://github.com/golang-migrate/migrate/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/golang-migrate/migrate/v4)](https://goreportcard.com/report/github.com/golang-migrate/migrate/v4)
+# Realty — Сайт продажи недвижимости
 
-# migrate
+Микросервисное приложение на Go с React фронтендом, задеплоенное в Kubernetes (Minikube).
 
-__Database migrations written in Go. Use as [CLI](#cli-usage) or import as [library](#use-in-your-go-project).__
+## Стек
 
-* Migrate reads migrations from [sources](#migration-sources)
-   and applies them in correct order to a [database](#databases).
-* Drivers are "dumb", migrate glues everything together and makes sure the logic is bulletproof.
-   (Keeps the drivers lightweight, too.)
-* Database drivers don't assume things or try to correct user input. When in doubt, fail.
+**Backend:** Go, gRPC, REST  
+**Frontend:** React, TypeScript, Vite, TailwindCSS  
+**Инфраструктура:** Kubernetes (Minikube), Docker, PostgreSQL 15, Redis 7, Apache Kafka, Elasticsearch 8, MinIO  
+**CI/CD:** GitHub Actions, self-hosted runner  
 
-Forked from [mattes/migrate](https://github.com/mattes/migrate)
+## Архитектура
 
-## Databases
+                        ┌─────────────┐
+                        │  api-gateway │ :8080
+                        └──────┬──────┘
+               ┌───────────────┼───────────────┐
+               ▼               ▼               ▼
+        user-service    listing-service   deal-service
+           :50051           :50052           :50053
+               
+               ┌───────────────┐
+               ▼               ▼
+        search-service  notification-service
+           :50054           :50055
 
-Database drivers run migrations. [Add a new database?](database/driver.go)
+Инфраструктура: PostgreSQL · Redis · Kafka · Elasticsearch · MinIO
 
-* [PostgreSQL](database/postgres)
-* [PGX v4](database/pgx)
-* [PGX v5](database/pgx/v5)
-* [Redshift](database/redshift)
-* [Ql](database/ql)
-* [Cassandra / ScyllaDB](database/cassandra)
-* [SQLite](database/sqlite)
-* [SQLite3](database/sqlite3) ([todo #165](https://github.com/mattes/migrate/issues/165))
-* [SQLCipher](database/sqlcipher)
-* [MySQL / MariaDB](database/mysql)
-* [Neo4j](database/neo4j)
-* [MongoDB](database/mongodb)
-* [CrateDB](database/crate) ([todo #170](https://github.com/mattes/migrate/issues/170))
-* [Shell](database/shell) ([todo #171](https://github.com/mattes/migrate/issues/171))
-* [Google Cloud Spanner](database/spanner)
-* [CockroachDB](database/cockroachdb)
-* [YugabyteDB](database/yugabytedb)
-* [ClickHouse](database/clickhouse)
-* [Firebird](database/firebird)
-* [MS SQL Server](database/sqlserver)
-* [RQLite](database/rqlite)
+## Требования
 
-### Database URLs
+- Ubuntu 22.04+
+- Docker 24+
+- Minikube v1.35+
+- kubectl
+- Git
 
-Database connection strings are specified via URLs. The URL format is driver dependent but generally has the form: `dbdriver://username:password@host:port/dbname?param1=true&param2=false`
+## Быстрый старт после установки
 
-Any [reserved URL characters](https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters) need to be escaped. Note, the `%` character also [needs to be escaped](https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_the_percent_character)
+bash
+~/start-realty.sh
 
-Explicitly, the following characters need to be escaped:
-`!`, `#`, `$`, `%`, `&`, `'`, `(`, `)`, `*`, `+`, `,`, `/`, `:`, `;`, `=`, `?`, `@`, `[`, `]`
 
-It's easiest to always run the URL parts of your DB connection URL (e.g. username, password, etc) through an URL encoder. See the example Python snippets below:
+## Полная установка с нуля
 
-```bash
-$ python3 -c 'import urllib.parse; print(urllib.parse.quote(input("String to encode: "), ""))'
-String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
-FAKEpassword%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D
-$ python2 -c 'import urllib; print urllib.quote(raw_input("String to encode: "), "")'
-String to encode: FAKEpassword!#$%&'()*+,/:;=?@[]
-FAKEpassword%21%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3D%3F%40%5B%5D
-$
-```
+### 1. Установи Docker
 
-## Migration Sources
+bash
+sudo apt update && sudo apt install -y ca-certificates curl gnupg
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list
+sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+sudo usermod -aG docker $USER && newgrp docker
 
-Source drivers read migrations from local or remote sources. [Add a new source?](source/driver.go)
+### 2. Установи kubectl и Minikube
 
-* [Filesystem](source/file) - read from filesystem
-* [io/fs](source/iofs) - read from a Go [io/fs](https://pkg.go.dev/io/fs#FS)
-* [Go-Bindata](source/go_bindata) - read from embedded binary data ([jteeuwen/go-bindata](https://github.com/jteeuwen/go-bindata))
-* [pkger](source/pkger) - read from embedded binary data ([markbates/pkger](https://github.com/markbates/pkger))
-* [GitHub](source/github) - read from remote GitHub repositories
-* [GitHub Enterprise](source/github_ee) - read from remote GitHub Enterprise repositories
-* [Bitbucket](source/bitbucket) - read from remote Bitbucket repositories
-* [Gitlab](source/gitlab) - read from remote Gitlab repositories
-* [AWS S3](source/aws_s3) - read from Amazon Web Services S3
-* [Google Cloud Storage](source/google_cloud_storage) - read from Google Cloud Platform Storage
+bash
+# kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
-## CLI usage
+# Minikube
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
 
-* Simple wrapper around this library.
-* Handles ctrl+c (SIGINT) gracefully.
-* No config search paths, no config files, no magic ENV var injections.
+### 3. Установи migrate
 
-__[CLI Documentation](cmd/migrate)__
+bash
+curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
+sudo mv migrate /usr/local/bin/
 
-### Basic usage
 
-```bash
-$ migrate -source file://path/to/migrations -database postgres://localhost:5432/database up 2
-```
+### 4. Настрой Docker Registry и Minikube
 
-### Docker usage
+bash
+# Запусти локальный registry
+docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
-```bash
-$ docker run -v {{ migration dir }}:/migrations --network host migrate/migrate
-    -path=/migrations/ -database postgres://localhost:5432/database up 2
-```
+# Узнай IP Minikube bridge (обычно 192.168.49.1)
+ip addr show | grep "inet 192.168"
 
-## Use in your Go project
+# Добавь insecure registry в Docker
+sudo nano /etc/docker/daemon.json
+# Вставь: { "insecure-registries": ["192.168.49.1:5000"] }
+sudo systemctl restart docker
+docker start registry
 
-* API is stable and frozen for this release (v3 & v4).
-* Uses [Go modules](https://golang.org/cmd/go/#hdr-Modules__module_versions__and_more) to manage dependencies.
-* To help prevent database corruptions, it supports graceful stops via `GracefulStop chan bool`.
-* Bring your own logger.
-* Uses `io.Reader` streams internally for low memory overhead.
-* Thread-safe and no goroutine leaks.
+# Запусти Minikube
+minikube start \
+  --driver=docker \
+  --cpus=3 \
+  --memory=7g \
+  --insecure-registry="192.168.49.1:5000"
 
-__[Go Documentation](https://pkg.go.dev/github.com/golang-migrate/migrate/v4)__
 
-```go
-import (
-    "github.com/golang-migrate/migrate/v4"
-    _ "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/github"
-)
+### 5. Склонируй репозиторий
 
-func main() {
-    m, err := migrate.New(
-        "github://mattes:personal-access-token@mattes/migrate_test",
-        "postgres://localhost:5432/database?sslmode=enable")
-    m.Steps(2)
-}
-```
+bash
+git clone git@github.com:shmatkovapple-ctrl/realty.git
+cd realty
 
-Want to use an existing database client?
 
-```go
-import (
-    "database/sql"
-    _ "github.com/lib/pq"
-    "github.com/golang-migrate/migrate/v4"
-    "github.com/golang-migrate/migrate/v4/database/postgres"
-    _ "github.com/golang-migrate/migrate/v4/source/file"
-)
+### 6. Собери Docker образы
 
-func main() {
-    db, err := sql.Open("postgres", "postgres://localhost:5432/database?sslmode=enable")
-    driver, err := postgres.WithInstance(db, &postgres.Config{})
-    m, err := migrate.NewWithDatabaseInstance(
-        "file:///migrations",
-        "postgres", driver)
-    m.Up() // or m.Step(2) if you want to explicitly set the number of migrations to run
-}
-```
+bash
+REGISTRY=192.168.49.1:5000
 
-## Getting started
+for service in user-service listing-service deal-service search-service notification-service api-gateway; do
+  docker build -t $REGISTRY/realty/$service:latest -f services/$service/Dockerfile .
+  docker push $REGISTRY/realty/$service:latest
+done
 
-Go to [getting started](GETTING_STARTED.md)
+docker build -t $REGISTRY/realty/frontend:latest -f frontend/Dockerfile frontend/
+docker push $REGISTRY/realty/frontend:latest
 
-## Tutorials
+### 7. Задеплой в Kubernetes
 
-* [CockroachDB](database/cockroachdb/TUTORIAL.md)
-* [PostgreSQL](database/postgres/TUTORIAL.md)
+bash
+kubectl apply -f k8s/namespace.yml
+kubectl apply -f k8s/secrets.yml
+kubectl apply -f k8s/configmap.yml
+kubectl apply -f k8s/infra/
 
-(more tutorials to come)
+# Ждём инфраструктуру
+kubectl wait --for=condition=ready pod -l app=postgres -n realty --timeout=180s
+kubectl wait --for=condition=ready pod -l app=redis -n realty --timeout=60s
 
-## Migration files
+kubectl apply -f k8s/services/
 
-Each migration has an up and down migration. [Why?](FAQ.md#why-two-separate-files-up-and-down-for-a-migration)
+### 8. Применяй миграции БД
 
-```bash
-1481574547_create_users_table.up.sql
-1481574547_create_users_table.down.sql
-```
+bash
+kubectl port-forward -n realty service/postgres 5432:5432 &
+sleep 2
+migrate -path ./migrations \
+  -database "postgres://usr:tr134sdfWE@localhost:5432/lets_goto_it?sslmode=disable" \
+  up
 
-[Best practices: How to write migrations.](MIGRATIONS.md)
+### 9. Проверь что всё работает
 
-## Coming from another db migration tool?
+bash
+kubectl get pods -n realty
+curl http://192.168.49.2:30080/health
+# Ожидаемый ответ: {"status":"ok"}
 
-Check out [migradaptor](https://github.com/musinit/migradaptor/).
-*Note: migradaptor is not affliated or supported by this project*
+## Доступ к приложению
 
-## Versions
+### Локально (внутри VM)
 
-Version | Supported? | Import | Notes
---------|------------|--------|------
-**master** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | New features and bug fixes arrive here first |
-**v4** | :white_check_mark: | `import "github.com/golang-migrate/migrate/v4"` | Used for stable releases |
-**v3** | :x: | `import "github.com/golang-migrate/migrate"` (with package manager) or `import "gopkg.in/golang-migrate/migrate.v3"` (not recommended) | **DO NOT USE** - No longer supported |
+bash
+# Фронтенд
+http://192.168.49.2:30081
 
-## Development and Contributing
+# API
+http://192.168.49.2:30080
 
-Yes, please! [`Makefile`](Makefile) is your friend,
-read the [development guide](CONTRIBUTING.md).
+### Из интернета (Cloudflare Tunnel)
 
-Also have a look at the [FAQ](FAQ.md).
+bash
+# Пробрось порты
+kubectl port-forward -n realty service/frontend 8081:80 --address=0.0.0.0 &
 
----
+# Запусти туннель
+cloudflared tunnel --url http://localhost:8081
+# Получишь URL вида: https://xxx.trycloudflare.com
 
-Looking for alternatives? [https://awesome-go.com/#database](https://awesome-go.com/#database).
+## CI/CD
+
+При каждом пуше в ветку `main`:
+1. Собираются Docker образы всех сервисов
+2. Образы пушатся в локальный registry (`192.168.49.1:5000`)
+3. Применяются k8s манифесты
+4. Все деплойменты перезапускаются с новым кодом
+
+Требование: self-hosted runner должен быть запущен на Ubuntu VM.
+
+bash
+# Проверь статус runner
+sudo systemctl status actions.runner.shmatkovapple-ctrl-realty.nik-VirtualBox.service
+
+# Запусти если не работает
+cd ~/actions-runner && sudo ./svc.sh start
+
+## Запуск после перезагрузки VM
+
+bash
+~/start-realty.sh
+
+Скрипт автоматически:
+- Запускает Docker Registry
+- Запускает Minikube
+- Деплоит всю инфраструктуру и сервисы
+
+## Структура проекта
+
+realty/
+├── api/                    # Proto файлы и сгенерированный код
+├── frontend/               # React приложение
+│   ├── Dockerfile
+│   └── nginx.conf          # Проксирует /api/ на api-gateway
+├── services/               # Go микросервисы
+│   ├── user-service/
+│   ├── listing-service/
+│   ├── deal-service/
+│   ├── search-service/
+│   ├── notification-service/
+│   └── api-gateway/
+├── k8s/                    # Kubernetes манифесты
+│   ├── namespace.yml
+│   ├── secrets.yml
+│   ├── configmap.yml
+│   ├── infra/              # PostgreSQL, Redis, Kafka, Elasticsearch, MinIO
+│   └── services/           # Все микросервисы + фронтенд
+├── migrations/             # SQL миграции
+├── docker-compose.yml      # Локальная разработка без k8s
+└── Makefile                # Команды для разработки
+
+## Полезные команды
+
+bash
+# Статус подов
+kubectl get pods -n realty
+
+# Логи сервиса
+kubectl logs -n realty -l app=user-service --tail=50
+
+# Применить миграции
+migrate -path ./migrations \
+  -database "postgres://usr:tr134sdfWE@localhost:5432/lets_goto_it?sslmode=disable" up
+
+# Пересобрать и задеплоить один сервис
+docker build -t 192.168.49.1:5000/realty/user-service:latest -f services/user-service/Dockerfile .
+docker push 192.168.49.1:5000/realty/user-service:latest
+kubectl rollout restart deployment/user-service -n realty
+
+# Остановить всё
+minikube stop
