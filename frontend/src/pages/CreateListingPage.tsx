@@ -106,7 +106,7 @@ export const CreateListingPage = () => {
         formData.append('photo', compressed, filename)
 
         const res = await fetch(
-          `http://localhost:8080/api/v1/listings/${createdId}/upload`,
+          `${import.meta.env.VITE_API_URL || 'http://192.168.49.2:30080/api/v1'}/listings/${createdId}/upload`,
           {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },

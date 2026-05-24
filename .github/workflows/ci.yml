@@ -72,6 +72,15 @@ jobs:
           docker push $REGISTRY/realty/api-gateway:${{ github.sha }}
           docker push $REGISTRY/realty/api-gateway:latest
 
+      - name: Build frontend
+        run: |
+          docker build \
+            -t $REGISTRY/realty/frontend:${{ github.sha }} \
+            -t $REGISTRY/realty/frontend:latest \
+            -f frontend/Dockerfile frontend/
+          docker push $REGISTRY/realty/frontend:${{ github.sha }}
+          docker push $REGISTRY/realty/frontend:latest    
+
   deploy:
     name: Deploy to Minikube
     runs-on: self-hosted
@@ -106,6 +115,7 @@ jobs:
           kubectl rollout restart deployment/search-service -n realty
           kubectl rollout restart deployment/notification-service -n realty
           kubectl rollout restart deployment/api-gateway -n realty
+          kubectl rollout restart deployment/frontend -n realty
           echo "Waiting for api-gateway..."
           kubectl rollout status deployment/api-gateway \
             -n realty --timeout=300s
