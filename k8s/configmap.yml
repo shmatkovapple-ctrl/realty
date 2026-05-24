@@ -5,7 +5,7 @@ metadata:
   namespace: realty
 data:
   REDIS_URL: "redis://redis:6379"
-  KAFKA_URL: "kafka:29092"
+  KAFKA_URL: "kafka-broker:29092"
   MINIO_URL: "minio:9000"
   ELASTIC_URL: "http://elasticsearch:9200"
   USER_SERVICE_ADDR: "user-service:50051"
