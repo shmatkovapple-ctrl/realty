@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -37,7 +38,43 @@ func NewUserUseCase(
 	}
 }
 
+var (
+	emailRegex = regexp.MustCompile(`^[^\s@]+@[^\s@]+\.[^\s@]+$`)
+	phoneRegex = regexp.MustCompile(`^\+7\d{10}$`)
+)
+
+func validateRegisterInput(input RegisterInput) error {
+	if input.Email == "" {
+		return errors.New("email обязателен")
+	}
+
+	if !emailRegex.MatchString(input.Email) {
+		return errors.New("неверный формат email")
+	}
+
+	if len(input.Password) < 8 {
+		return errors.New("пароль должен быть не менее 8 символов")
+	}
+
+	if input.Phone != "" {
+		if !phoneRegex.MatchString(input.Phone) {
+			return errors.New("неверный формат телефона — ожидается +79001234567")
+		}
+	}
+
+	role := entity.Role(input.Role)
+	if !role.IsValid() {
+		return errors.New("недопустимая роль")
+	}
+
+	return nil
+}
+
 func (uc *userUseCase) Register(ctx context.Context, input RegisterInput) (*AuthOutput, error) {
+	if err := validateRegisterInput(input); err != nil {
+		return nil, err
+	}
+
 	existing, err := uc.userRepo.FindByEmail(ctx, input.Email)
 	if err == nil && existing != nil {
 		return nil, errors.New("пользователь с таким email уже существует")
@@ -190,8 +227,14 @@ func (uc *userUseCase) parseToken(tokenStr string) (*TokenClaims, error) {
 		return nil, errors.New("неверный формат claims")
 	}
 
+	userID, ok1 := claims["user_id"].(string)
+	role, ok2 := claims["role"].(string)
+	if !ok1 || !ok2 {
+		return nil, errors.New("неверный формат claims")
+	}
+
 	return &TokenClaims{
-		UserID: claims["user_id"].(string),
-		Role:   claims["role"].(string),
+		UserID: userID,
+		Role:   role,
 	}, nil
 }

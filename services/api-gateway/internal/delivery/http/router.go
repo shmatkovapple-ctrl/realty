@@ -1,4 +1,4 @@
-﻿package http
+package http
 
 import (
 "net/http"
@@ -11,7 +11,7 @@ chimiddleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func NewRouter(
-authMW     *middleware.AuthMiddleware,
+authMW      *middleware.AuthMiddleware,
 rateLimiter *middleware.RateLimiter,
 user         *UserHandler,
 listing      *ListingHandler,
@@ -48,15 +48,18 @@ r.Post("/refresh", user.RefreshToken)
 r.Route("/listings", func(r chi.Router) {
 r.Get("/", search.Search)
 r.Get("/autocomplete", search.Autocomplete)
+r.With(authMW.Authenticate, authMW.RequireAnyRole("seller", "agent")).Get("/mine", listing.ListMine)
 r.Get("/{id}", listing.GetByID)
 
 r.Group(func(r chi.Router) {
 r.Use(authMW.Authenticate)
+r.Use(authMW.RequireAnyRole("seller", "agent"))
 r.Post("/", listing.Create)
 r.Put("/{id}", listing.Update)
 r.Delete("/{id}", listing.Delete)
 r.Post("/{id}/publish", listing.Publish)
 r.Post("/{id}/upload-url", listing.GetUploadURL)
+r.Post("/{id}/upload", listing.UploadPhoto)
 })
 })
 

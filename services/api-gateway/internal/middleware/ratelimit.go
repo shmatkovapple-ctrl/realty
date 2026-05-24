@@ -1,7 +1,6 @@
 ﻿package middleware
 
 import (
-"context"
 "fmt"
 "net/http"
 "time"
@@ -24,7 +23,7 @@ return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 ip := r.RemoteAddr
 key := fmt.Sprintf("rate:%s", ip)
 
-ctx := context.Background()
+ctx := r.Context()
 count, err := rl.client.Incr(ctx, key).Result()
 if err != nil {
 next.ServeHTTP(w, r)
