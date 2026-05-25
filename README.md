@@ -36,8 +36,7 @@
 
 ## Быстрый старт после установки
 
-bash
-~/start-realty.sh
+ansible-playbook ~/realty/ansible/playbook.yml
 
 
 ## Полная установка с нуля
@@ -178,8 +177,7 @@ cd ~/actions-runner && sudo ./svc.sh start
 
 ## Запуск после перезагрузки VM
 
-bash
-~/start-realty.sh
+ansible-playbook ~/realty/ansible/playbook.yml
 
 Скрипт автоматически:
 - Запускает Docker Registry

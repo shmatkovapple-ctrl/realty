@@ -1,0 +1,125 @@
+---
+- name: Setup Realty Infrastructure
+  hosts: localhost
+  connection: local
+  become: false
+  vars:
+    realty_path: "{{ lookup('env', 'HOME') }}/realty"
+    registry: "192.168.49.1:5000"
+    services:
+      - name: user-service
+        dockerfile: services/user-service/Dockerfile
+      - name: listing-service
+        dockerfile: services/listing-service/Dockerfile
+      - name: deal-service
+        dockerfile: services/deal-service/Dockerfile
+      - name: search-service
+        dockerfile: services/search-service/Dockerfile
+      - name: notification-service
+        dockerfile: services/notification-service/Dockerfile
+      - name: api-gateway
+        dockerfile: services/api-gateway/Dockerfile
+
+  tasks:
+    - name: "[1/7] Start Docker Registry"
+      community.docker.docker_container:
+        name: registry
+        image: registry:2
+        state: started
+        restart_policy: always
+        ports:
+          - "5000:5000"
+
+    - name: "[2/7] Start Minikube"
+      command: minikube start --driver=docker --cpus=3 --memory=7g --insecure-registry="192.168.49.1:5000"
+      register: minikube_result
+      changed_when: "'Done' in minikube_result.stdout"
+
+    - name: "[3/7] Build backend services"
+      command: >
+        docker build
+        -t {{ registry }}/realty/{{ item.name }}:latest
+        -f {{ realty_path }}/{{ item.dockerfile }}
+        {{ realty_path }}
+      loop: "{{ services }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: "[3/7] Build frontend"
+      command: >
+        docker build
+        -t {{ registry }}/realty/frontend:latest
+        -f {{ realty_path }}/frontend/Dockerfile
+        {{ realty_path }}/frontend
+
+    - name: "[3/7] Push backend services"
+      command: docker push {{ registry }}/realty/{{ item.name }}:latest
+      loop: "{{ services }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: "[3/7] Push frontend"
+      command: docker push {{ registry }}/realty/frontend:latest
+
+    - name: "[4/7] Apply namespace and configs"
+      command: kubectl apply -f {{ realty_path }}/k8s/{{ item }}
+      loop:
+        - namespace.yml
+        - secrets.yml
+        - configmap.yml
+
+    - name: "[5/7] Deploy infrastructure"
+      command: kubectl apply -f {{ realty_path }}/k8s/infra/
+
+    - name: "[5/7] Wait for postgres"
+      command: kubectl wait --for=condition=ready pod -l app=postgres -n realty --timeout=180s
+
+    - name: "[5/7] Wait for redis"
+      command: kubectl wait --for=condition=ready pod -l app=redis -n realty --timeout=60s
+
+    - name: "[6/7] Deploy services"
+      command: kubectl apply -f {{ realty_path }}/k8s/services/
+
+    - name: "[6/7] Restart deployments with new images"
+      command: kubectl rollout restart deployment -n realty
+
+    - name: "[6/7] Wait for api-gateway"
+      command: kubectl rollout status deployment/api-gateway -n realty --timeout=300s
+
+    - name: "[7/7] Kill old port-forwards"
+      shell: pkill -f "kubectl port-forward" 2>/dev/null; true
+      ignore_errors: true
+
+    - name: "[7/7] Wait for ports to free"
+      pause:
+        seconds: 2
+
+    - name: "[7/7] Port forward frontend"
+      shell: nohup kubectl port-forward -n realty service/frontend 8081:80 --address=0.0.0.0 > /dev/null 2>&1 &
+      async: 0
+      poll: 0
+
+    - name: "[7/7] Port forward api-gateway"
+      shell: nohup kubectl port-forward -n realty service/api-gateway 8080:8080 --address=0.0.0.0 > /dev/null 2>&1 &
+      async: 0
+      poll: 0
+
+    - name: "[7/7] Port forward grafana"
+      shell: nohup kubectl port-forward -n monitoring service/monitoring-grafana 3000:80 --address=0.0.0.0 > /dev/null 2>&1 &
+      async: 0
+      poll: 0
+
+    - name: Show result"
+      command: kubectl get pods -n realty
+      register: pods_output
+
+    - name: Print result
+      debug:
+        msg: |
+          {{ pods_output.stdout }}
+
+          Фронтенд: http://192.168.49.2:30081
+          API:      http://192.168.49.2:30080
+          Grafana:  http://localhost:3000 (admin/admin123)
+
+          Для доступа из интернета:
