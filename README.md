@@ -55,7 +55,6 @@ sudo usermod -aG docker $USER && newgrp docker
 
 ### 2. Установи kubectl и Minikube
 
-bash
 # kubectl
 curl -LO "https://dl.k8s.io/release/$(curl -sL https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
@@ -71,18 +70,16 @@ curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migr
 sudo mv migrate /usr/local/bin/
 
 
-### 4. Настрой Docker Registry и Minikube
 
-bash
-# Запусти локальный registry
+## Запусти локальный registry
 docker run -d -p 5000:5000 --restart=always --name registry registry:2
 
-# Узнай IP Minikube bridge (обычно 192.168.49.1)
+## Узнай IP Minikube bridge (обычно 192.168.49.1)
 ip addr show | grep "inet 192.168"
 
-# Добавь insecure registry в Docker
+## Добавь insecure registry в Docker
 sudo nano /etc/docker/daemon.json
-# Вставь: { "insecure-registries": ["192.168.49.1:5000"] }
+## Вставь: { "insecure-registries": ["192.168.49.1:5000"] }
 sudo systemctl restart docker
 docker start registry
 
@@ -148,7 +145,6 @@ curl http://192.168.49.2:30080/health
 
 ### Локально (внутри VM)
 
-bash
 # Фронтенд
 http://192.168.49.2:30081
 
@@ -157,7 +153,6 @@ http://192.168.49.2:30080
 
 ### Из интернета (Cloudflare Tunnel)
 
-bash
 # Пробрось порты
 kubectl port-forward -n realty service/frontend 8081:80 --address=0.0.0.0 &
 
@@ -175,7 +170,6 @@ cloudflared tunnel --url http://localhost:8081
 
 Требование: self-hosted runner должен быть запущен на Ubuntu VM.
 
-bash
 # Проверь статус runner
 sudo systemctl status actions.runner.shmatkovapple-ctrl-realty.nik-VirtualBox.service
 
